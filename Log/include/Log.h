@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <stdarg.h>
 
 namespace w{
     
@@ -57,8 +58,17 @@ namespace w{
     class LogEvent
     {
     public:
-        LogEvent(/* args */);
-        ~LogEvent();
+        LogEvent(Logger::Ptr logger, LogLevel::Level level, 
+        const char* file, int32_t line, uint32_t elapse, uint32_t threadID,
+        uint32_t fiberID, uint64_t time, std::string threadName):
+        m_logger(logger), m_level(level),m_file(file), m_line(line),
+        m_elapse(elapse), m_threadID(threadID), m_fiberID(fiberID),
+        m_time(time), m_threadName(threadName)
+        {}
+        ~LogEvent(){}
+        void format(const char* fmt, ...);
+        void format(const char* fmt, va_list al);
+
     private:
         /// @brief 文件名
         const char * m_file = nullptr;
@@ -81,6 +91,17 @@ namespace w{
         /// @brief 日志等级
         LogLevel::Level m_level;
     };
+    
+    class LogFormatter
+    {
+    public:
+        LogFormatter(const std::string& pattern);
+        ~LogFormatter();
+    private:
+        std::string m_pattern;   
+    };
+    
+  
     
     
 
