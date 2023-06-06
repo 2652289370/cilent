@@ -4,6 +4,7 @@
 #include <sstream>
 #include <memory>
 #include <stdarg.h>
+#include <vector>
 
 namespace w{
     
@@ -58,6 +59,7 @@ namespace w{
     class LogEvent
     {
     public:
+        typedef std::shared_ptr<LogEvent> Ptr;
         LogEvent(Logger::Ptr logger, LogLevel::Level level, 
         const char* file, int32_t line, uint32_t elapse, uint32_t threadID,
         uint32_t fiberID, uint64_t time, std::string threadName):
@@ -69,6 +71,9 @@ namespace w{
         void format(const char* fmt, ...);
         void format(const char* fmt, va_list al);
 
+        std::string getContent(){
+            return m_ss.str();
+        }
     private:
         /// @brief 文件名
         const char * m_file = nullptr;
@@ -91,14 +96,38 @@ namespace w{
         /// @brief 日志等级
         LogLevel::Level m_level;
     };
+
+    class Logger
+    {
+    public:
+        typedef std::shared_ptr<Logger> Ptr;
+        Logger(/* args */);
+        ~Logger();
+
+    };
+ 
+    
     
     class LogFormatter
     {
     public:
         LogFormatter(const std::string& pattern);
         ~LogFormatter();
+        
+        class LogFormatItem
+        {
+        public:
+            typedef std::shared_ptr<LogFormatItem> Ptr;
+            virtual ~LogFormatItem() {}
+            virtual void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) = 0;
+        };
+    
     private:
-        std::string m_pattern;   
+        void init();
+        
+    private:
+        std::string m_pattern;  
+        std::vector<LogFormatItem::Ptr> m_item;
     };
     
   
