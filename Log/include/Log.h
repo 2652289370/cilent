@@ -5,6 +5,8 @@
 #include <memory>
 #include <stdarg.h>
 #include <vector>
+#include <map>
+#include <functional>
 
 namespace w{
     
@@ -95,15 +97,6 @@ namespace w{
         Logger::Ptr m_logger;
         /// @brief 日志等级
         LogLevel::Level m_level;
-    };
-
-    class Logger
-    {
-    public:
-        typedef std::shared_ptr<Logger> Ptr;
-        Logger(/* args */);
-        ~Logger();
-
     };
  
     

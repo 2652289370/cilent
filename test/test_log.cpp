@@ -13,6 +13,8 @@ using namespace w;
 
 int main(int argc, char** argv)
 {
- 
+    LogFormatter fmt("sssssss%m{si{}isi}ss   d%dc         ssd");
+    
+    std::shared_ptr<int>(new int);
     return 0;
 }

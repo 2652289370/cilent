@@ -118,17 +118,84 @@ namespace w{
             }
             if ((i + 1) < m_pattern.size())
             {
-                if(m_pattern[i + 1] == '%')
+                if(m_pattern[i + 1] == '%' || !isalpha(m_pattern[i + 1]))
                 {
                     nstr.append(1, '%');
                     continue;
                 }
+                 
+            }
+            if(i == m_pattern.size() - 1) 
+            {
+                nstr.append(1, m_pattern[i]);
+                continue;
             }
 
-            if
-            
-            
+
+            size_t n = i + 2;
+
+            bool have_args = false;
+
+            std::string fmt;
+
+            while (n < m_pattern.size())
+            {
+                if (m_pattern[i + 2] != '{' && !have_args)
+                {
+                    break;
+                }
+                else
+                {
+                    have_args = true;
+                }
+                if (m_pattern[n] == '}' && have_args)
+                {
+                    fmt = m_pattern.substr(i + 3, n - i - 3);
+                    break;
+                }
+                n++;
+            }
+
+            std::string str;
+            str.append(1, m_pattern[i + 1]);
+
+            if (!nstr.empty())
+            {
+                vec.push_back(std::make_tuple(nstr, std::string(), 0));
+                vec.push_back(std::make_tuple(str, fmt, 1));
+            }
+            else
+            {
+                vec.push_back(std::make_tuple(str, fmt, 1));
+            }
+            i += 1 + fmt.size();
+            if (fmt.size() > 0)
+            {
+                i += 2;
+            }    
+            nstr.clear();
         }
+        if (!nstr.empty())
+        {
+            vec.push_back(std::make_tuple(nstr, std::string(), 0));
+        }
+
+
+        std::map<std::string, std::function<LogFormatItem::Ptr(const std::string& str)>> s_format_items = {
+            #define XX(str, C) \
+            {#str, [](const std::string& fmt){return LogFormatItem::Ptr(new C(fmt)); }}
+
+            XX(m, MessageFormatItem),
+
+            #undef XX
+        };
+
+        for (auto& i : vec)
+        {
+            std::cout << std::get<0>(i) << std::endl;
+            // std::cout << std::get<1>(i) << std::endl;
+        }
+        
         
     }
 
