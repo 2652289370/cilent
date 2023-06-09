@@ -14,6 +14,8 @@
 namespace w{
 
     class LogFormatter;
+    class LogEvent;
+    class LogAppender;
     
     /**
      * @brief 日志等级
@@ -38,16 +40,34 @@ namespace w{
     /**
      * @brief 日志管理器
     */
-    class Logger
+    class Logger : public std::enable_shared_from_this<Logger>
     {
     public:
         typedef std::shared_ptr<Logger> Ptr;
-        Logger(const std::string& name);
+        Logger();
         ~Logger();
+        /// @brief 日志输出
+        /// @param level 日志级别
+        /// @param event 日志时间
+        void log(LogLevel::Level level, std::shared_ptr<LogEvent> event);
 
+        void debug(std::shared_ptr<LogEvent> event);
+        /// @brief 设置日志等级
+        /// @param level 日志等级
+        void setLogLevel(LogLevel::Level level){
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_level = level;
+        }
+        /// @brief 设置日志格式
+        /// @param format 日志格式
+        void setLogFormat(const std::string& format);
+
+        void addLogAppender(std::shared_ptr<LogAppender> appdener);
+
+        void Logger::delAppender(std::shared_ptr<LogAppender> appender); 
     private:
-        /// @brief 日志器名称
-        std::string m_name;
+        /// @brief 互斥量
+        std::mutex m_mutex;
         /// @brief 日志级别
         LogLevel::Level m_level;
         /// @brief 日志格式器
@@ -139,6 +159,7 @@ namespace w{
   class LogAppender
   {
   public:
+    friend class Logger;
     LogAppender(/* args */){}
     virtual ~LogAppender(){}
 
@@ -148,8 +169,6 @@ namespace w{
         std::mutex m_mutex;
         /// @brief 日志格式
         LogFormatter::Ptr m_formatter;
-        /// @brief 日志级别
-        LogLevel::Level m_level = LogLevel::DEBUG;
   };
 
 

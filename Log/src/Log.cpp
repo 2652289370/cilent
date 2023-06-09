@@ -2,7 +2,7 @@
  * @Author: w 2652289370@qq.com
  * @Date: 2023-06-06 09:27:36
  * @LastEditors: w 2652289370@qq.com
- * @LastEditTime: 2023-06-06 11:24:04
+ * @LastEditTime: 2023-06-09 17:10:56
  * @FilePath: /cilent/Log/src/Log.cpp
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -259,9 +259,8 @@ namespace w{
     }
 
        
-    Logger::Logger(const std::string& name) 
-    : m_name(name),
-    m_level(LogLevel::DEBUG)
+    Logger::Logger() 
+    : m_level(LogLevel::DEBUG)
     {
         m_formatter.reset(new LogFormatter("%m"));
     }
@@ -270,14 +269,58 @@ namespace w{
     {
     }
 
-    void StdoutLogAppender::log(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)
+
+    void Logger::log(LogLevel::Level level, std::shared_ptr<LogEvent> event)
     {
-        if (level >= m_level)
+        if (m_level <= level)
+        {
+            auto self = shared_from_this();
+            
+            if (!m_appenders.empty())
+            {
+                std::unique_lock<std::mutex> lock(m_mutex);
+                for (auto& i : m_appenders)
+                {
+                    i->log(self, level, event);
+                }
+            }
+            
+        }
+        
+    }
+
+    void Logger::setLogFormat(const std::string& format){
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_formatter.reset(new LogFormatter(format));
+        }
+
+    void Logger::addLogAppender(std::shared_ptr<LogAppender> appdener)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        appdener->m_formatter = this->m_formatter;
+        m_appenders.push_back(appdener);
+    }
+
+    void Logger::delAppender(std::shared_ptr<LogAppender> appender) 
+    {
+        std::unique_lock<std::mutex> lock();
+        for(auto it = m_appenders.begin();
+                it != m_appenders.end(); ++it) {
+            if(*it == appender) {
+                m_appenders.erase(it);
+                break;
+            }
+        }
+    }
+
+
+
+    void StdoutLogAppender::log(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)
+    {   
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             m_formatter->format(std::cout, logger, level, event);
-        }
-        
+        }      
     }
 
 }
