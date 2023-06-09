@@ -92,6 +92,30 @@ namespace w{
             os << LogLevel::ToString(level);
         }
     };
+
+    class ElapseFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        ElapseFormatItem (const std::string& str = ""){}
+        ~ElapseFormatItem (){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << event->getElapse();
+        }
+    };
+    
+    class StringFormatItem: public LogFormatter::LogFormatItem
+    {
+    public:
+        StringFormatItem(const std::string& str):m_string(str)
+        {}
+        ~StringFormatItem(){}
+         void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << m_string;
+        }
+    private:
+        std::string m_string;
+    };
+
     
     
 
@@ -192,20 +216,68 @@ namespace w{
 
         for (auto& i : vec)
         {
-            std::cout << std::get<0>(i) << std::endl;
-            // std::cout << std::get<1>(i) << std::endl;
+            if (std::get<2>(i) == 1)
+            {
+                auto it = s_format_items.find(std::get<0>(i));
+                if (it == s_format_items.end())
+                {
+                    m_item.push_back(LogFormatItem::Ptr(new StringFormatItem("<<error_format %" + std::get<0>(i) + ">>")));
+                    m_error = true;
+                }
+                else
+                {
+                    m_item.push_back(it->second(std::get<1>(i)));
+                }
+                
+            }
+            else
+            {
+                m_item.push_back(LogFormatItem::Ptr(new StringFormatItem(std::get<0>(i))));
+            }
+            
         }
         
         
     }
 
-       
-    Logger::Logger(/* args */)
+    std::string LogFormatter::format(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)
     {
+        std::stringstream ss;
+        for (auto& i : m_item)
+        {
+           i->format(ss, logger, level, event);
+        }
+        return ss.str();
+    }
+    std::ostream& LogFormatter::format(std::ostream& ofs, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)
+    {
+        for (auto& i : m_item)
+        {
+            i->format(ofs, logger, level, event);
+        }
+        return ofs;
+    }
+
+       
+    Logger::Logger(const std::string& name) 
+    : m_name(name),
+    m_level(LogLevel::DEBUG)
+    {
+        m_formatter.reset(new LogFormatter("%m"));
     }
     
     Logger::~Logger()
     {
+    }
+
+    void StdoutLogAppender::log(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)
+    {
+        if (level >= m_level)
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_formatter->format(std::cout, logger, level, event);
+        }
+        
     }
 
 }

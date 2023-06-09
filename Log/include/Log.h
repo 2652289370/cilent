@@ -7,13 +7,14 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <mutex>
+#include <thread>
+#include <list>
 
 namespace w{
-    
-    // class LogLevel;
-    // class Logger;
-    
 
+    class LogFormatter;
+    
     /**
      * @brief 日志等级
     */
@@ -32,16 +33,6 @@ namespace w{
         static const char* ToString(LogLevel::Level level);
         static LogLevel::Level FromString(const std::string& str);
     };
-
-    class LogAppender
-    {
-    public:
-        typedef std::shared_ptr<LogAppender> Ptr;
-        LogAppender(/* args */);
-        ~LogAppender();
-    private:
-        LogLevel::Level m_level;
-    };
     
 
     /**
@@ -51,11 +42,18 @@ namespace w{
     {
     public:
         typedef std::shared_ptr<Logger> Ptr;
-        Logger(/* args */);
+        Logger(const std::string& name);
         ~Logger();
 
     private:
-
+        /// @brief 日志器名称
+        std::string m_name;
+        /// @brief 日志级别
+        LogLevel::Level m_level;
+        /// @brief 日志格式器
+        std::shared_ptr<LogFormatter> m_formatter;
+        /// @brief 日志输出地集合
+        std::list<std::shared_ptr<LogAppender>> m_appenders;
     };
 
     class LogEvent
@@ -75,6 +73,11 @@ namespace w{
 
         std::string getContent(){
             return m_ss.str();
+        }
+
+        std::string getElapse()
+        {
+            return std::to_string(m_elapse);
         }
     private:
         /// @brief 文件名
@@ -100,13 +103,21 @@ namespace w{
     };
  
     
-    
+    /**
+    * @brief 日志格式器
+    */
     class LogFormatter
     {
     public:
+        typedef std::shared_ptr<LogFormatter> Ptr;
+
         LogFormatter(const std::string& pattern);
         ~LogFormatter();
         
+
+        std::string format(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event);
+        std::ostream& format(std::ostream& ofs, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event);
+
         class LogFormatItem
         {
         public:
@@ -121,9 +132,33 @@ namespace w{
     private:
         std::string m_pattern;  
         std::vector<LogFormatItem::Ptr> m_item;
+        bool m_error = false;
     };
     
   
+  class LogAppender
+  {
+  public:
+    LogAppender(/* args */){}
+    virtual ~LogAppender(){}
+
+    virtual void log(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr) = 0;
+    protected:
+        /// @brief 互斥锁
+        std::mutex m_mutex;
+        /// @brief 日志格式
+        LogFormatter::Ptr m_formatter;
+        /// @brief 日志级别
+        LogLevel::Level m_level = LogLevel::DEBUG;
+  };
+
+
+    class StdoutLogAppender : public LogAppender
+    {
+    public:
+        typedef std::shared_ptr<StdoutLogAppender> Ptr;
+        void log(Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)override;
+    };
     
     
 
