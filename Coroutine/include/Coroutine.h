@@ -6,6 +6,7 @@
 #include <vector>
 #include <functional>
 #include <future>
+#include "Log.h"
 
 namespace w{
 
@@ -45,8 +46,8 @@ namespace w{
     class CoroutineManger
     {
         friend void uthread_main(CoroutineManger* ut);
+        friend int getFireberID();
     public:
-        
         /**
          * @brief 创建协程
          * @param f 输入函数

@@ -9,7 +9,32 @@
 #include "Log.h"
 
 namespace w{
-    const char* ToString(LogLevel::Level level)
+
+    Logger* Logger::logger = nullptr;
+
+    uint32_t getThreadID()
+    {
+        std::thread::id threadId = std::this_thread::get_id();
+        uint32_t intID = *(unsigned int*)&threadId;
+        return intID;
+    }
+
+    int getFireberID()
+    {
+        return CoroutineManger::getSingleton()->running_thread;
+    }
+
+    void set_thisThreadName(const std::string& name)
+    {
+        ThreadName = name;
+    }
+
+    std::string get_thisThreadName()
+    {
+        return ThreadName;
+    }
+
+    const char* LogLevel::ToString(LogLevel::Level level)
     {
         switch (level)
         {
@@ -30,7 +55,7 @@ namespace w{
         return "UNKNOW";
     }
 
-    LogLevel::Level FromString(const std::string& str)
+    LogLevel::Level LogLevel::FromString(const std::string& str)
     {
         #define XX(level, v) \
         if(str == #v) \
@@ -70,7 +95,7 @@ namespace w{
         
     }
 
-
+    /// @brief [%m] 消息
     class MessageFormatItem : public LogFormatter::LogFormatItem
     {
     private:
@@ -82,7 +107,7 @@ namespace w{
             os << event->getContent();
         }
     };
-
+    /// @brief [%p] 日志级别
     class LevelFormatItem : public LogFormatter::LogFormatItem
     {
     public:
@@ -92,7 +117,7 @@ namespace w{
             os << LogLevel::ToString(level);
         }
     };
-
+    /// @brief [%r] 累计毫秒数
     class ElapseFormatItem : public LogFormatter::LogFormatItem
     {
     public:
@@ -102,6 +127,101 @@ namespace w{
             os << event->getElapse();
         }
     };
+    /// @brief [%t] 线程ID
+    class ThreadIDFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        ThreadIDFormatItem(const std::string& str = ""){}
+        ~ThreadIDFormatItem(){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << event->getThreadID();
+        }
+    };
+    /// @brief [%d] 时间
+    class DateTimeFormatItem : public LogFormatter::LogFormatItem
+    {
+  
+    public:
+        DateTimeFormatItem(const std::string& format  = "%Y-%m-%d %H:%M:%S"): m_format(format){
+            if (m_format.empty())
+            {
+                m_format = "%Y-%m-%d %H:%M:%S";
+            }
+            
+        }
+        ~DateTimeFormatItem (){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            tm tt;
+            time_t now = time(0);
+            localtime_r(&now, &tt);
+            char buf[64];
+            strftime(buf, sizeof(buf), m_format.c_str(), &tt);
+            os << buf;
+        }
+    private:
+        std::string m_format;
+    };
+    /// @brief [%f] 文件名
+    class FilenameFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        FilenameFormatItem(const std::string& str  = ""){}
+        ~FilenameFormatItem(){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << event->getFile();
+        }
+    };    
+    /// @brief [%l] 行号
+    class LineFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        LineFormatItem(const std::string& str  = ""){}
+        ~LineFormatItem(){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << event->getLine();
+        }
+    };
+    /// @brief [%n] 换行
+    class NewLineFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        NewLineFormatItem(const std::string& str  = ""){}
+        ~NewLineFormatItem(){}
+         void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << std::endl;
+        }
+    };
+    /// @brief [%T] 制表符
+    class TabFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        TabFormatItem(const std::string& str  = ""){}
+        ~TabFormatItem(){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << "\t";
+        }
+    };
+    /// @brief [%F] 协程ID
+    class FirberIDFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        FirberIDFormatItem(const std::string& str  = ""){}
+        ~FirberIDFormatItem(){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << event->getFirberID();
+        }
+    };
+    /// @brief [%N] 线程名称
+    class ThreadNameFormatItem : public LogFormatter::LogFormatItem
+    {
+    public:
+        ThreadNameFormatItem(const std::string& str  = ""){}
+        ~ThreadNameFormatItem(){}
+        void format(std::ostream& os, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event) override{
+            os << event->getThreadName();
+        }
+    };
+    
     
     class StringFormatItem: public LogFormatter::LogFormatItem
     {
@@ -115,10 +235,6 @@ namespace w{
     private:
         std::string m_string;
     };
-
-    
-    
-
 
     LogFormatter::LogFormatter(const std::string& pattern):m_pattern(pattern)
     {
@@ -210,7 +326,16 @@ namespace w{
             {#str, [](const std::string& fmt){return LogFormatItem::Ptr(new C(fmt)); }}
 
             XX(m, MessageFormatItem),
-
+            XX(p, LevelFormatItem),
+            XX(r, ElapseFormatItem),
+            XX(t, ThreadIDFormatItem),
+            XX(n, NewLineFormatItem),
+            XX(d, DateTimeFormatItem),
+            XX(f, FilenameFormatItem),
+            XX(l, LineFormatItem),
+            XX(T, TabFormatItem),
+            XX(F, FirberIDFormatItem),
+            XX(N, ThreadNameFormatItem),
             #undef XX
         };
 
@@ -251,6 +376,7 @@ namespace w{
     }
     std::ostream& LogFormatter::format(std::ostream& ofs, Logger::Ptr logger, LogLevel::Level level, LogEvent::Ptr event)
     {
+
         for (auto& i : m_item)
         {
             i->format(ofs, logger, level, event);
@@ -262,20 +388,28 @@ namespace w{
     Logger::Logger() 
     : m_level(LogLevel::DEBUG)
     {
-        m_formatter.reset(new LogFormatter("%m"));
+        m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%N%T%F%T[%p]%T%f:%l%T%m%n"));
     }
     
     Logger::~Logger()
     {
     }
 
+    Logger* Logger::getSingleton()
+    {
+        if (logger == nullptr)
+        {
+            logger = new Logger();
+        }
+        return logger;
+    }
+
 
     void Logger::log(LogLevel::Level level, std::shared_ptr<LogEvent> event)
     {
-        if (m_level <= level)
+        if (level >= m_level)
         {
             auto self = shared_from_this();
-            
             if (!m_appenders.empty())
             {
                 std::unique_lock<std::mutex> lock(m_mutex);
@@ -292,12 +426,17 @@ namespace w{
     void Logger::setLogFormat(const std::string& format){
             std::unique_lock<std::mutex> lock(m_mutex);
             m_formatter.reset(new LogFormatter(format));
+            for (auto& i : m_appenders)
+            {
+                i->m_formatter = m_formatter;
+            }
+            
         }
 
     void Logger::addLogAppender(std::shared_ptr<LogAppender> appdener)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        appdener->m_formatter = this->m_formatter;
+        appdener->m_formatter = m_formatter;
         m_appenders.push_back(appdener);
     }
 

@@ -10,11 +10,43 @@
 #include "Log.h"
 
 using namespace w;
+using namespace std;
+
+
+void test()
+{
+//     Logger::Ptr log(new Logger);
+    
+//    {
+//         StdoutLogAppender::Ptr stdap(new StdoutLogAppender());
+//         StdoutLogAppender::Ptr stdap2(new StdoutLogAppender());
+//         log->addLogAppender(stdap);
+//    } 
+//    //set_thisThreadName("test");
+//    cout << get_thisThreadName() << endl;
+//     log->setLogLevel(LogLevel::INFO);
+//     LogEvent::Ptr event(new LogEvent(log, LogLevel::DEBUG, __FILE__, __LINE__, 0, getThreadID(), getFireberID(), 0, "main"));
+//     log->log(LogLevel::ERROR, event);
+}
+
 
 int main(int argc, char** argv)
 {
-    LogFormatter fmt("sssssss%m{si{}isi}ss   d%dc         ssd");
     
-    std::shared_ptr<int>(new int);
+//     Logger::Ptr log(new Logger);
+    
+//    {
+//         StdoutLogAppender::Ptr stdap(new StdoutLogAppender());
+//         StdoutLogAppender::Ptr stdap2(new StdoutLogAppender());
+//         log->addLogAppender(stdap);
+//    } 
+//    std::thread th(test);
+//    th.join();
+//    set_thisThreadName("main");
+//    cout << get_thisThreadName() << endl;
+//     log->setLogLevel(LogLevel::INFO);
+//     LogEvent::Ptr event(new LogEvent(log, LogLevel::DEBUG, __FILE__, __LINE__, 0, getThreadID(), getFireberID(), 0, "main"));
+//     log->log(LogLevel::ERROR, event);
+    
     return 0;
 }
