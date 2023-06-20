@@ -21,8 +21,11 @@ FIND_PACKAGE(Threads)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Log/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Coroutine/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Socket/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/utility/include)
 
-FILE(GLOB_RECURSE sourcefiles "test/test_log.cpp" "Log/src/*.cpp" "Coroutine/src/*.cpp")
+
+FILE(GLOB_RECURSE sourcefiles "test/test_server.cpp" "Log/src/*.cpp" "Coroutine/src/*.cpp" "Socket/src/*.cpp" "utility/src/*.cpp")
 ADD_EXECUTABLE(${BIN_NAME} ${sourcefiles})
 
 TARGET_LINK_LIBRARIES(${BIN_NAME} ${CMAKE_THREAD_LIBS_INIT})
