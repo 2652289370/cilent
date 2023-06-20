@@ -164,7 +164,13 @@ int parseRequestLine(const char* line, int cfd)
     }
     if (S_ISDIR(st.st_mode))
     {
+        sendHeadMsg(cfd, 200, "OK", getFileType(".html"), -1);
         sendDir(file, cfd);
+    }
+    else
+    {
+        sendHeadMsg(cfd, 200, "OK", getFileType(file), st.st_size);
+        sendFile(file, cfd);
     }
     
     
@@ -172,10 +178,51 @@ int parseRequestLine(const char* line, int cfd)
 }
 
 
+const char* getFileType(const char* name)
+{
+    // a.jpg a.mp4 a.html
+    // 自右向左查找‘.’字符, 如不存在返回NULL
+    const char* dot = strrchr(name, '.');
+    if (dot == NULL)
+        return "text/plain; charset=utf-8";	// 纯文本
+    if (strcmp(dot, ".html") == 0 || strcmp(dot, ".htm") == 0)
+        return "text/html; charset=utf-8";
+    if (strcmp(dot, ".jpg") == 0 || strcmp(dot, ".jpeg") == 0)
+        return "image/jpeg";
+    if (strcmp(dot, ".gif") == 0)
+        return "image/gif";
+    if (strcmp(dot, ".png") == 0)
+        return "image/png";
+    if (strcmp(dot, ".css") == 0)
+        return "text/css";
+    if (strcmp(dot, ".au") == 0)
+        return "audio/basic";
+    if (strcmp(dot, ".wav") == 0)
+        return "audio/wav";
+    if (strcmp(dot, ".avi") == 0)
+        return "video/x-msvideo";
+    if (strcmp(dot, ".mov") == 0 || strcmp(dot, ".qt") == 0)
+        return "video/quicktime";
+    if (strcmp(dot, ".mpeg") == 0 || strcmp(dot, ".mpe") == 0)
+        return "video/mpeg";
+    if (strcmp(dot, ".vrml") == 0 || strcmp(dot, ".wrl") == 0)
+        return "model/vrml";
+    if (strcmp(dot, ".midi") == 0 || strcmp(dot, ".mid") == 0)
+        return "audio/midi";
+    if (strcmp(dot, ".mp3") == 0)
+        return "audio/mpeg";
+    if (strcmp(dot, ".ogg") == 0)
+        return "application/ogg";
+    if (strcmp(dot, ".pac") == 0)
+        return "application/x-ns-proxy-autoconfig";
+
+    return "text/plain; charset=utf-8";
+}
+
 int sendDir(const char* dirName, int cfd)
 {
     char buf[4096] = {0};
-    sprintf(buf, "<html><head><title>%s<title></head><body><table>", dirName);
+    sprintf(buf, "<html><head><title>%s</title></head><body><table>", dirName);
     dirent** namelist;
     int num = scandir(dirName, &namelist, NULL, alphasort);
     for (size_t i = 0; i < num; i++)
@@ -207,7 +254,27 @@ int sendDir(const char* dirName, int cfd)
     return 0;
 }
 
-int sendHeadMsg()
+int sendHeadMsg(int cfd, int status, const char* descr, const char* type, int length)
 {
+    char buf[4096] = {0};
+    sprintf(buf, "http:/1.1 %d %s \r\n", status, descr);
+    sprintf(buf + strlen(buf), "content-type: %s\r\n", type);
+    sprintf(buf + strlen(buf), "content-length: %d\r\n\r\n", length);
+    send(cfd, buf, strlen(buf), 0);
+    return 0;
+}
 
+int sendFile(const char* fileName, int cfd)
+{
+    int fd = open(fileName, O_RDONLY);
+    assert(fd > 0);
+    off_t offset = 0;
+    int size = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+    while (offset < size)
+    {
+        int ret = sendfile(cfd, fd, &offset, size - offset);
+    }
+    close(fd);
+    return 0;
 }
